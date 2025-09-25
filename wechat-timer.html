@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no">
+    <title>家庭缩肛练习计时器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f9f7, #e8f5e9);
+            min-height: 100vh;
+            color: #333;
+            padding-bottom: 20px;
+            -webkit-tap-highlight-color: transparent; /* 去除微信点击高亮 */
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 1.5rem 1rem;
+            text-align: center;
+        }
+        
+        .family-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #4CAF50;
+        }
+        
+        .title {
+            color: #2E7D32;
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            padding: 0 10px;
+        }
+        
+        .progress-container {
+            height: 12px;
+            background-color: #d9ead3;
+            border-radius: 6px;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #81C784, #4CAF50);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .status {
+            font-size: 1.5rem;
+            margin: 2rem 0;
+            min-height: 2rem;
+            color: #556B2F;
+            padding: 0 10px;
+        }
+        
+        .time-info {
+            color: #556B2F;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0 0.5rem 1rem;
+            width: 120px;
+        }
+        
+        .start-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .pause-btn {
+            background-color: #7986CB;
+            color: white;
+            display: none;
+        }
+        
+        .reset-btn {
+            background-color: #90A4AE;
+            color: white;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .tips {
+            margin-top: 2rem;
+            color: #8D6E63;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            padding: 0 10px;
+        }
+        
+        .family-tip {
+            color: #E91E63;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+        
+        .celebration {
+            margin-top: 2rem;
+            font-size: 1.5rem;
+            color: #2E7D32;
+            font-weight: bold;
+            display: none;
+            padding: 0 10px;
+        }
+        
+        /* 全屏倒计时样式 */
+        .countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .countdown-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .countdown-text {
+            font-size: 3rem;
+            color: #E91E63;
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+        
+        .countdown-number {
+            font-size: 15vw;
+            font-weight: bold;
+            color: #4CAF50;
+            line-height: 1;
+        }
+        
+        /* 微信分享提示 */
+        .share-tip {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+            z-index: 900;
+        }
+        
+        /* 适配小屏手机 */
+        @media (max-width: 360px) {
+            .title {
+                font-size: 1.5rem;
+            }
+            
+            .status {
+                font-size: 1.3rem;
+            }
+            
+            .btn {
+                width: 100px;
+                padding: 0.7rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="family-icon">👨‍👩‍👧</div>
+        <h1 class="title">家庭缩肛练习计时器</h1>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="status" id="status">准备好开始练习了吗？</div>
+        <div class="time-info" id="timeInfo">总时长：10:00 | 剩余：10:00</div>
+        
+        <div class="button-group">
+            <button class="btn start-btn" id="startBtn">
+                <i class="fa fa-play mr-1"></i> 开始练习
+            </button>
+            <button class="btn pause-btn" id="pauseBtn">
+                <i class="fa fa-pause mr-1"></i> 暂停
+            </button>
+            <button class="btn reset-btn" id="resetBtn">
+                <i class="fa fa-refresh mr-1"></i> 重置
+            </button>
+        </div>
+        
+        <div class="tips">
+            <p>缩肛时缓慢收紧肛门周围肌肉，保持3秒</p>
+            <p>放松时完全放松肌肉，保持6秒</p>
+            <p class="family-tip">👨‍👩‍👧 一家人一起坚持，加油！</p>
+        </div>
+        
+        <div class="celebration" id="celebration">
+            <i class="fa fa-trophy mr-2"></i>恭喜完成10分钟练习！太棒了！
+        </div>
+    </div>
+    
+    <!-- 全屏倒计时覆盖层 -->
+    <div class="countdown-overlay" id="countdownOverlay">
+        <div class="countdown-text">倒计时</div>
+        <div class="countdown-number" id="countdownNumber">3</div>
+    </div>
+    
+    <!-- 微信分享提示 -->
+    <div class="share-tip" id="shareTip">
+        <i class="fa fa-share-alt mr-1"></i> 可分享给家人一起使用
+    </div>
+
+    <script>
+        // DOM元素
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const status = document.getElementById('status');
+        const timeInfo = document.getElementById('timeInfo');
+        const progressBar = document.getElementById('progressBar');
+        const celebration = document.getElementById('celebration');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownNumber = document.getElementById('countdownNumber');
+        const shareTip = document.getElementById('shareTip');
+        
+        // 配置参数
+        const CONTRACT_DURATION = 3; // 缩肛持续时间（秒）
+        const RELAX_DURATION = 6;    // 放松持续时间（秒）
+        const TOTAL_DURATION = 10 * 60; // 总时长（秒）
+        const COUNTDOWN_SECONDS = 3; // 倒计时秒数
+        
+        // 状态变量
+        let isRunning = false;
+        let isPaused = false;
+        let isCountingDown = false;
+        let totalPassed = 0;
+        let stagePassed = 0;
+        let countdownLeft = 0;
+        let isContractStage = true;
+        let timerInterval;
+        let audioCtx;
+        let shareTipShown = false;
+        
+        // 初始化音频上下文 - 适配微信
+        function initAudioCtx() {
+            if (!audioCtx) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log("音频初始化失败，可能是在微信环境限制下");
+                }
+            }
+        }
+        
+        // 播放音效的通用方法，处理微信可能的限制
+        function playSound(soundFunc) {
+            // 微信中需要用户交互后才能播放音效
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().then(() => {
+                    soundFunc();
+                }).catch(e => {
+                    console.log("无法恢复音频上下文:", e);
+                });
+            } else if (audioCtx) {
+                soundFunc();
+            }
+        }
+        
+        // 计时滴答声
+        function playTickSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(500, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        }
+        
+        // 倒计时音效
+        function playCountdownSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        }
+        
+        // 缩肛提示音效
+        function playContractSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(350, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.4);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.28, audioCtx.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.4);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.4);
+        }
+        
+        // 放松提示音效
+        function playRelaxSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.5);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.4);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.6);
+        }
+        
+        // 庆祝欢呼音效
+        function playCelebrationSound() {
+            // 创建第一个音符
+            const oscillator1 = audioCtx.createOscillator();
+            const gainNode1 = audioCtx.createGain();
+            oscillator1.connect(gainNode1);
+            gainNode1.connect(audioCtx.destination);
+            
+            oscillator1.type = 'sine';
+            oscillator1.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gainNode1.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+            
+            oscillator1.start();
+            oscillator1.stop(audioCtx.currentTime + 0.5);
+            
+            // 创建第二个音符
+            const oscillator2 = audioCtx.createOscillator();
+            const gainNode2 = audioCtx.createGain();
+            oscillator2.connect(gainNode2);
+            gainNode2.connect(audioCtx.destination);
+            
+            oscillator2.type = 'sine';
+            oscillator2.frequency.setValueAtTime(1046.5, audioCtx.currentTime + 0.3);
+            gainNode2.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode2.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.35);
+            gainNode2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+            
+            oscillator2.start();
+            oscillator2.stop(audioCtx.currentTime + 1.0);
+            
+            // 创建第三个音符
+            const oscillator3 = audioCtx.createOscillator();
+            const gainNode3 = audioCtx.createGain();
+            oscillator3.connect(gainNode3);
+            gainNode3.connect(audioCtx.destination);
+            
+            oscillator3.type = 'sine';
+            oscillator3.frequency.setValueAtTime(1318.5, audioCtx.currentTime + 0.6);
+            gainNode3.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode3.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.65);
+            gainNode3.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+            
+            oscillator3.start();
+            oscillator3.stop(audioCtx.currentTime + 1.5);
+        }
+        
+        // 更新阶段显示
+        function updateStageUI() {
+            if (isPaused) {
+                status.textContent = '已暂停，点击继续';
+                pauseBtn.innerHTML = '<i class="fa fa-play mr-1"></i> 继续';
+            } else {
+                pauseBtn.innerHTML = '<i class="fa fa-pause mr-1"></i> 暂停';
+                if (isContractStage) {
+                    status.textContent = '正在缩肛... 保持住';
+                } else {
+                    status.textContent = '正在放松... 休息一下';
+                }
+            }
+        }
+        
+        // 更新时间和进度
+        function updateTimeAndProgress() {
+            totalPassed++;
+            stagePassed++;
+            playSound(playTickSound);
+
+            const remaining = TOTAL_DURATION - totalPassed;
+            const remainingMin = Math.floor(remaining / 60).toString().padStart(2, '0');
+            const remainingSec = (remaining % 60).toString().padStart(2, '0');
+            const passedMin = Math.floor(totalPassed / 60).toString().padStart(2, '0');
+            const passedSec = (totalPassed % 60).toString().padStart(2, '0');
+            
+            timeInfo.textContent = `总时长：10:00 | 已过：${passedMin}:${passedSec} | 剩余：${remainingMin}:${remainingSec}`;
+            const progressPercent = (totalPassed / TOTAL_DURATION) * 100;
+            progressBar.style.width = `${progressPercent}%`;
+
+            const currentStageDuration = isContractStage ? CONTRACT_DURATION : RELAX_DURATION;
+            if (stagePassed >= currentStageDuration) {
+                isContractStage = !isContractStage;
+                stagePassed = 0;
+                updateStageUI();
+                if (isContractStage) {
+                    playSound(playContractSound);
+                } else {
+                    playSound(playRelaxSound);
+                }
+            }
+
+            // 完成全部练习
+            if (totalPassed >= TOTAL_DURATION) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                isPaused = false;
+                startBtn.disabled = true;
+                pauseBtn.disabled = true;
+                status.textContent = '练习完成！';
+                celebration.style.display = 'block';
+                playSound(playCelebrationSound);
+                
+                // 显示分享提示
+                setTimeout(() => {
+                    showShareTip();
+                }, 1000);
+            }
+        }
+        
+        // 开始倒计时
+        function startCountdown() {
+            isCountingDown = true;
+            countdownLeft = COUNTDOWN_SECONDS;
+            countdownOverlay.classList.add('active');
+            countdownNumber.textContent = countdownLeft;
+            playSound(playCountdownSound);
+
+            const countdownInterval = setInterval(() => {
+                countdownLeft--;
+                if (countdownLeft > 0) {
+                    countdownNumber.textContent = countdownLeft;
+                    playSound(playCountdownSound);
+                } else {
+                    // 倒计时结束
+                    clearInterval(countdownInterval);
+                    countdownOverlay.classList.remove('active');
+                    isCountingDown = false;
+                    isContractStage = true;
+                    stagePassed = 0;
+                    updateStageUI();
+                    playSound(playContractSound);
+                    timerInterval = setInterval(updateTimeAndProgress, 1000);
+                    pauseBtn.disabled = false;
+                }
+            }, 1000);
+        }
+        
+        // 显示分享提示
+        function showShareTip() {
+            if (!shareTipShown) {
+                shareTip.style.display = 'block';
+                shareTipShown = true;
+                
+                // 3秒后隐藏
+                setTimeout(() => {
+                    shareTip.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // 开始按钮事件
+        startBtn.addEventListener('click', () => {
+            if (isRunning) return;
+            
+            // 确保音频上下文已启动（处理微信自动播放限制）
+            initAudioCtx();
+            
+            isRunning = true;
+            isPaused = false;
+            startBtn.disabled = true;
+            pauseBtn.style.display = 'inline-block';
+            pauseBtn.disabled = true; // 倒计时期间禁用暂停按钮
+            
+            // 启动倒计时
+            startCountdown();
+        });
+        
+        // 暂停/继续按钮事件
+        pauseBtn.addEventListener('click', () => {
+            if (!isRunning || isCountingDown) return;
+            
+            if (isPaused) {
+                // 继续练习
+                isPaused = false;
+                timerInterval = setInterval(updateTimeAndProgress, 1000);
+                updateStageUI();
+            } else {
+                // 暂停练习
+                isPaused = true;
+                clearInterval(timerInterval);
+                updateStageUI();
+            }
+        });
+        
+        // 重置按钮事件
+        resetBtn.addEventListener('click', () => {
+            clearInterval(timerInterval);
+            isRunning = false;
+            isPaused = false;
+            isCountingDown = false;
+            totalPassed = 0;
+            stagePassed = 0;
+            countdownLeft = 0;
+            isContractStage = true;
+            
+            countdownOverlay.classList.remove('active');
+            status.textContent = '准备好开始练习了吗？';
+            timeInfo.textContent = '总时长：10:00 | 剩余：10:00';
+            progressBar.style.width = '0%';
+            celebration.style.display = 'none';
+            
+            startBtn.disabled = false;
+            pauseBtn.style.display = 'none';
+            pauseBtn.disabled = false;
+            pauseBtn.innerHTML = '<i class="fa fa-pause mr-1"></i> 暂停';
+        });
+        
+        // 微信环境下需要用户交互才能激活音频
+        document.addEventListener('click', () => {
+            initAudioCtx();
+        }, { once: true });
+        
+        // 检测是否在微信中打开
+        function isWechat() {
+            const ua = navigator.userAgent.toLowerCase();
+            return ua.indexOf('micromessenger') !== -1;
+        }
+        
+        // 如果在微信中，添加一些适配逻辑
+        if (isWechat()) {
+            console.log('在微信环境中打开');
+            // 可以在这里添加微信JS-SDK相关配置（如果需要更高级的功能）
+        }
+    </script>
+</body>
+</html>
